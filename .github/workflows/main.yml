@@ -1,0 +1,30 @@
+name: OIDC # This is the name of the GitHub Actions workflow: OIDC.
+
+on:
+  push:
+    branches: 
+     - main # This triggers the workflow every time code is pushed to the main branch.
+
+permissions:
+  id-token: write # Required to allow GitHub Actions to request an OIDC token for authentication with AWS.
+  contents: read # Grants access to the repo’s contents (e.g., for checkout).
+
+jobs:
+  oidc-test:
+    runs-on: ubuntu-latest # Runs the job on a GitHub-hosted Ubuntu runner.
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4 # Clones your GitHub repository into the runner, so it can access your code.
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE }} # Requests an OIDC token from GitHub 
+          # Uses that token to assume the IAM role in AWS (defined in ${{ secrets.AWS_IAM_ROLE }} — e.g., arn:aws:iam::ACCOUNT_ID:role/YOUR_ROLE)
+          # Sets up temporary AWS credentials for use in later steps.
+          # You must have configured the IAM role in AWS to trust GitHub's OIDC provider with the proper sub and aud conditions.
+
+      - name: Test AWS Credentials
+        run: aws sts get-caller-identity # Runs aws sts get-caller-identity to confirm that the AWS credentials (from OIDC) are working.
+        # If it prints your AWS Account ID and role ARN, then the OIDC setup is successful.
